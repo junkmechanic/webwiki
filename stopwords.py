@@ -27,4 +27,5 @@ stopwords = ['I', 'a', 'an', 'as', 'at', 'by', 'he', 'his', 'me', 'or', 'thou',
              'there', 'though', 'through', 'throughout', 'till', 'twain',
              'under', 'underneath', 'unlike', 'up', 'various', 'vis-a-vis',
              'whatever', 'whatsoever', 'when', 'wherewith', 'wherewithal',
-             'while', 'within', 'worth', 'yet', 'yon', 'yonder', 'her']
+             'while', 'within', 'worth', 'yet', 'yon', 'yonder', 'her', 'the',
+             'is', 'was', 'are', 'their']

@@ -1,9 +1,11 @@
 import re
+from stopwords import stopwords
 
 
 class WikiPage:
 
     LEAVE_OUT = "(#cite_note)|(Help:)|(Wikipedia:)|(Category:)"
+    WEED_OUT = "(.+)(,|\.)"
 
     def __init__(self, spun, level=0):
         self.yarn = spun
@@ -26,11 +28,23 @@ class WikiPage:
                 if (href not in self.weighed_links) and (r is None):
                     self.weighed_links[href] = 0
                     self.links.append(href)
+            word_list = para.text.split()
+            for word in word_list:
+                regex = re.compile(WikiPage.WEED_OUT)
+                r = regex.search(word)
+                if r is not None:
+                    self.insert_word(r.groups()[0])
+                else:
+                    self.insert_word(word)
 
-
-
-#for i in b:
-#    regex = re.compile('(.+),')
-#    r = regex.search(i)
-#    if r is not None:
-#        print(r.groups()[0])
+    def insert_word(self, word):
+        required = True
+        for stpwrd in stopwords:
+            if stpwrd == word.lower():
+                required = False
+                break
+        if required:
+            if word in self.words:
+                self.words[word] += 1
+            else:
+                self.words[word] = 0

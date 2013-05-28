@@ -3,6 +3,7 @@ import threading
 import Queue
 import time
 from bs4 import BeautifulSoup
+from operator import itemgetter
 import pprint
 
 from wikipage import WikiPage
@@ -55,6 +56,11 @@ class RootProcessor(threading.Thread):
         remember to acquire lock when updating wikipage link dict
         """
         root_page = WikiPage(spin_yarn(self.url), self.level)
+        try:
+            print("Inserting {} ...".format(self.url))
+            self.display_que.put((self.url, root_page), block=True, timeout=2)
+        except:
+            print("Error in inserting {} in queue".format(self.url))
         for i in range(10):
             added = False
             while not added:
@@ -84,8 +90,15 @@ class Displayer(threading.Thread):
     def run(self):
         while 1:
             try:
-                url, job = self.queue.get(block=True, timeout=4)
-                pprint.pprint(url + ' -> ' + job.links[0])
+                url, page = self.queue.get(block=True, timeout=4)
+                i = 0
+                for word in sorted(page.words.iteritems(), key=itemgetter(1),
+                                   reverse=True):
+                    if i < 4:
+                        i += 1
+                        pprint.pprint(url + ' -> ' + word[0] + ':' + str(word[1]))
+                    else:
+                        break
             except:
                 print("Queue is empty now")
                 break
@@ -96,21 +109,9 @@ def weave():
     root = RootProcessor(url_d, display_queue, 1)
     root.start()
     display = Displayer(display_queue)
+    time.sleep(2)
     display.start()
     display_queue.join()
-    #page = spin_yarn(url_d)
-    ##infobox = page.find_all('table', class_='infobox')
-    #content = page.find('div', id='mw-content-text')
-    #paras = content.find_all('p')
-    #links = []
-    #for para in paras:
-    #    links.extend(para.find_all('a'))
-    #    #for text in para.stripped_strings:
-    #    #    print(repr(text))
-    ##pprint.pprint(links)
-    #for l in links:
-    #    print(l)
-    ##print(type(links[0]))
 
 
 if __name__ == '__main__':
