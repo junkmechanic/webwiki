@@ -1,10 +1,18 @@
+import re
+
+
 class WikiPage:
-    def __init__(self, spun, level=1):
+
+    LEAVE_OUT = "(#cite_note)|(Help:)|(Wikipedia:)|(Category:)"
+
+    def __init__(self, spun, level=0):
         self.yarn = spun
         self.name = spun.body.find('h1', id='firstHeading').text
-        self.links = {}
+        self.weighed_links = {}
+        self.links = []
         self.words = {}
         self.level = level
+        self.get_links()
 
     def get_links(self):
         content = self.yarn.find('div', id='mw-content-text')
@@ -13,8 +21,11 @@ class WikiPage:
             para_links = para.find_all('a')
             for link in para_links:
                 href = link.get('href')
-                if href not in self.links:
-                    self.links[href] = 0
+                regex = re.compile(WikiPage.LEAVE_OUT)
+                r = regex.search(href)
+                if (href not in self.weighed_links) and (r is None):
+                    self.weighed_links[href] = 0
+                    self.links.append(href)
 
 
 
