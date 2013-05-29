@@ -7,12 +7,14 @@ class WikiPage:
     LEAVE_OUT = "(#cite_note)|(Help:)|(Wikipedia:)|(Category:)"
     WEED_OUT = "(.+)(,|\.|'s)"
 
-    def __init__(self, spun):
+    def __init__(self, spun, url):
+        self.url = url
         self.yarn = spun
         self.name = spun.body.find('h1', id='firstHeading').text
         self.weighed_links = {}
         self.links = []
         self.words = {}
+        self.word_dict = {}
         self.knit_yarn()
 
     def knit_yarn(self):
@@ -25,7 +27,7 @@ class WikiPage:
                 regex = re.compile(WikiPage.LEAVE_OUT)
                 r = regex.search(href)
                 if (href not in self.weighed_links) and (r is None):
-                    self.weighed_links[href] = 0
+                    #self.weighed_links[href] = 0
                     self.links.append(href)
             word_list = para.text.split()
             for word in word_list:

@@ -2,6 +2,7 @@ import requests
 import threading
 import Queue
 import time
+import math
 from bs4 import BeautifulSoup
 from operator import itemgetter
 
@@ -14,10 +15,12 @@ req_headers = {
                   'Gecko/20100101 Firefox/21.0'
 }
 
-url_d = 'http://en.wikipedia.org/wiki/Batman'
+url_d = '/wiki/Batman'
 base_url = 'http://en.wikipedia.org'
 
 ROOT_IDS = 0
+
+root_nodes = {}
 
 lock = threading.Lock()
 
@@ -28,6 +31,20 @@ def spin_yarn(url):
     return(yarn)
 
 
+def compare_pages(root_page, page):
+    similarity = 0
+    for rword in root_page.word_dict.keys():
+        for word in page.word_dict.keys():
+            if word == rword:
+                print(word)
+                similarity += (1 - similarity) * (page.word_dict[word] *
+                                                  page.word_dict[word])
+    print('{} <- {} -> {}'.format(root_page.url, str(similarity), page.url))
+    if similarity > 0:
+        root_page.weighed_links[page.url] = math.exp(similarity * 50)
+        page.weighed_links[root_page.url] = math.exp(similarity * 50)
+
+
 class Worker(threading.Thread):
     def __init__(self, url, que, parent_id):
         self.parent_id = parent_id
@@ -36,10 +53,11 @@ class Worker(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        page = WikiPage(spin_yarn(base_url + self.url))
+        page = WikiPage(spin_yarn(base_url + self.url), self.url)
         try:
             print("Inserting {} ...".format(self.url))
-            self.display_que.put((self.url, page), block=True, timeout=2)
+            self.display_que.put((page, self.parent_id, None), block=True,
+                                 timeout=2)
         except:
             print("Error in inserting {} in queue".format(self.url))
 
@@ -63,10 +81,11 @@ class RootProcessor(threading.Thread):
         lock.release()
 
     def run(self):
-        root_page = WikiPage(spin_yarn(self.url))
+        root_page = WikiPage(spin_yarn(base_url + self.url), self.url)
         try:
             print("Inserting {} ...".format(self.url))
-            self.display_que.put((self.url, root_page), block=True, timeout=2)
+            self.display_que.put((root_page, self.parent_id, self.id),
+                                 block=True, timeout=2)
         except:
             print("Error in inserting {} in queue".format(self.url))
         for i in range(10):
@@ -97,17 +116,31 @@ class Displayer(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
+        global root_nodes
         while 1:
             try:
-                url, page = self.queue.get(block=True, timeout=4)
+                page, parent_id, id = self.queue.get(block=True, timeout=4)
                 i = 0
+                sum = 0.0
                 for word in sorted(page.words.iteritems(), key=itemgetter(1),
                                    reverse=True):
                     if i < 4:
                         i += 1
-                        print(url + ' -> ' + word[0] + ':' + str(word[1]))
+                        page.word_dict[word[0]] = word[1]
+                        sum += word[1]
                     else:
                         break
+                for word in page.word_dict.keys():
+                    page.word_dict[word] = page.word_dict[word] / sum
+                if id is not None:
+                    lock.acquire()
+                    root_nodes[id] = page
+                    lock.release()
+                if parent_id is not 0:
+                    lock.acquire()
+                    root_page = root_nodes[parent_id]
+                    lock.release()
+                    compare_pages(root_page, page)
                 self.queue.task_done()
             except:
                 print("Queue is empty now")
