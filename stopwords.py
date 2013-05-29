@@ -1,4 +1,4 @@
-stopwords = ['I', 'a', 'an', 'as', 'at', 'by', 'he', 'his', 'me', 'or', 'thou',
+stopwords = ['i', 'a', 'an', 'as', 'at', 'by', 'he', 'his', 'me', 'or', 'thou',
              'us', 'who', 'against', 'amid', 'amidst', 'among', 'amongst',
              'and', 'anybody', 'anyone', 'because', 'beside', 'circa',
              'despite', 'during', 'everybody', 'everyone', 'for', 'from',

@@ -4,7 +4,6 @@ import Queue
 import time
 from bs4 import BeautifulSoup
 from operator import itemgetter
-import pprint
 
 from wikipage import WikiPage
 
@@ -15,9 +14,12 @@ req_headers = {
                   'Gecko/20100101 Firefox/21.0'
 }
 
-
 url_d = 'http://en.wikipedia.org/wiki/Batman'
 base_url = 'http://en.wikipedia.org'
+
+ROOT_IDS = 0
+
+lock = threading.Lock()
 
 
 def spin_yarn(url):
@@ -27,7 +29,8 @@ def spin_yarn(url):
 
 
 class Worker(threading.Thread):
-    def __init__(self, url, que):
+    def __init__(self, url, que, parent_id):
+        self.parent_id = parent_id
         self.url = url
         self.display_que = que
         threading.Thread.__init__(self)
@@ -42,20 +45,25 @@ class Worker(threading.Thread):
 
 
 class RootProcessor(threading.Thread):
-    def __init__(self, url, que, level=1, max_thrds=3):
+    def __init__(self, url, que, level=1, max_thrds=3, parent_id=0):
+        self.parent_id = parent_id
         self.url = url
         self.level = level
         self.display_que = que
         self.workers = []
         self.max_threads = max_thrds
         threading.Thread.__init__(self)
+        self.get_id()
+
+    def get_id(self):
+        global ROOT_IDS
+        lock.acquire()
+        ROOT_IDS += 1
+        self.id = ROOT_IDS
+        lock.release()
 
     def run(self):
-        """
-        This thread will take care of each root
-        remember to acquire lock when updating wikipage link dict
-        """
-        root_page = WikiPage(spin_yarn(self.url), self.level)
+        root_page = WikiPage(spin_yarn(self.url))
         try:
             print("Inserting {} ...".format(self.url))
             self.display_que.put((self.url, root_page), block=True, timeout=2)
@@ -66,7 +74,8 @@ class RootProcessor(threading.Thread):
             while not added:
                 if len(self.workers) < self.max_threads:
                     print("RootProcessor spawning new worker")
-                    new_worker = Worker(root_page.links[i], self.display_que)
+                    new_worker = Worker(root_page.links[i], self.display_que,
+                                        self.id)
                     self.workers.append(new_worker)
                     new_worker.start()
                     added = True
@@ -96,9 +105,10 @@ class Displayer(threading.Thread):
                                    reverse=True):
                     if i < 4:
                         i += 1
-                        pprint.pprint(url + ' -> ' + word[0] + ':' + str(word[1]))
+                        print(url + ' -> ' + word[0] + ':' + str(word[1]))
                     else:
                         break
+                self.queue.task_done()
             except:
                 print("Queue is empty now")
                 break

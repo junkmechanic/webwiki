@@ -5,18 +5,17 @@ from stopwords import stopwords
 class WikiPage:
 
     LEAVE_OUT = "(#cite_note)|(Help:)|(Wikipedia:)|(Category:)"
-    WEED_OUT = "(.+)(,|\.)"
+    WEED_OUT = "(.+)(,|\.|'s)"
 
-    def __init__(self, spun, level=0):
+    def __init__(self, spun):
         self.yarn = spun
         self.name = spun.body.find('h1', id='firstHeading').text
         self.weighed_links = {}
         self.links = []
         self.words = {}
-        self.level = level
-        self.get_links()
+        self.knit_yarn()
 
-    def get_links(self):
+    def knit_yarn(self):
         content = self.yarn.find('div', id='mw-content-text')
         paras = content.find_all('p')
         for para in paras:
@@ -33,17 +32,12 @@ class WikiPage:
                 regex = re.compile(WikiPage.WEED_OUT)
                 r = regex.search(word)
                 if r is not None:
-                    self.insert_word(r.groups()[0])
+                    self.insert_word(r.groups()[0].lower())
                 else:
-                    self.insert_word(word)
+                    self.insert_word(word.lower())
 
     def insert_word(self, word):
-        required = True
-        for stpwrd in stopwords:
-            if stpwrd == word.lower():
-                required = False
-                break
-        if required:
+        if word not in stopwords:
             if word in self.words:
                 self.words[word] += 1
             else:
