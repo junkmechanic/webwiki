@@ -37,11 +37,13 @@ def compare_pages(root_page, page):
         for word in page.word_dict.keys():
             if word == rword:
                 print(word)
-                similarity += (1 - similarity) * (page.word_dict[word] *
+                similarity += (1 - similarity) * (root_page.word_dict[rword] *
                                                   page.word_dict[word])
     print('{} <- {} -> {}'.format(root_page.url, str(similarity), page.url))
     if similarity > 0:
+        lock.acquire()
         root_page.weighed_links[page.url] = math.exp(similarity * 50)
+        lock.release()
         page.weighed_links[root_page.url] = math.exp(similarity * 50)
 
 
@@ -141,6 +143,7 @@ class Displayer(threading.Thread):
                     root_page = root_nodes[parent_id]
                     lock.release()
                     compare_pages(root_page, page)
+                    print(root_page.weighed_links)
                 self.queue.task_done()
             except:
                 print("Queue is empty now")
