@@ -151,6 +151,9 @@ class Displayer(threading.Thread):
 
 
 def weave():
+
+    # root_nodes has to be cleared before each run either from this point or
+    # from the caller of this function if root_nodes is accessable to it.
     display_queue = Queue.Queue()
     root = RootProcessor(url_d, display_queue, 1)
     root.start()
